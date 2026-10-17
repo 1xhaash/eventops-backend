@@ -42,9 +42,10 @@ const signup = async (req, res) => {
             verificationToken,
         });
 
+        const deployHost =
+            process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
         const baseUrl =
-            process.env.BASE_URL ||
-            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+            process.env.BASE_URL || (deployHost ? `https://${deployHost}` : "");
         const verificationUrl =
             `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
