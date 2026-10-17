@@ -42,8 +42,11 @@ const signup = async (req, res) => {
             verificationToken,
         });
 
+        const baseUrl =
+            process.env.BASE_URL ||
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
         const verificationUrl =
-            `${process.env.BASE_URL}/api/auth/verify-email?token=${verificationToken}`;
+            `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
         await sendEmail({
             email: newUser.email,
