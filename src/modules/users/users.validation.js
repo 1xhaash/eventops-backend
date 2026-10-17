@@ -1,11 +1,25 @@
 import Joi from 'joi';
 
 export const signupSchema = Joi.object({
-    name: Joi.string().min(3).max(30).required().messages({
-        'string.empty': 'Name is required',
-        'string.min': 'Name must be at least 3 characters',
-        'string.max': 'Name cannot exceed 30 characters'
-    }),
+    name: Joi.string()
+        .trim()
+        .min(3)
+        .max(30)
+        .pattern(/^[A-Za-z\u0600-\u06FF]+(?:[ '\-][A-Za-z\u0600-\u06FF]+)*$/)
+        .custom((value, helpers) => {
+            const words = value.trim().split(/\s+/).filter(Boolean);
+            if (words.length < 2) {
+                return helpers.message('Please enter your full name (first and last name)');
+            }
+            return value;
+        })
+        .required()
+        .messages({
+            'string.empty': 'Name is required',
+            'string.min': 'Name must be at least 3 characters',
+            'string.max': 'Name cannot exceed 30 characters',
+            'string.pattern.base': 'Name can only contain letters, spaces, hyphens and apostrophes'
+        }),
     email: Joi.string()
         .email({ tlds: { allow: false } })
         .custom((value, helpers) => {
