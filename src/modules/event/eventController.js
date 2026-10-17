@@ -74,7 +74,6 @@ export const getAllEvents = async (req, res) => {
       filter.organizer = req.user._id;
     } else {
       filter.visibility = "public";
-      filter.status = "scheduled";
 
       if (organizer) {
         filter.organizer = organizer;
