@@ -22,10 +22,26 @@ import { errorHandler } from './src/middleware/auth.middleware.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Single cached database connection per instance (required for serverless).
+let dbPromise = null;
+app.use(async (req, res, next) => {
+    try {
+        if (!dbPromise) dbPromise = dbConnection();
+        await dbPromise;
+        next();
+    } catch (err) {
+        dbPromise = null;
+        return res.status(500).json({
+            success: false,
+            message: 'Database connection failed',
+            error: err.message,
+        });
+    }
+});
 
 // Routes
 app.use(userRoutes);
@@ -43,7 +59,7 @@ app.get('/', (req, res) => {
     res.send('EventOps Backend is running!');
 });
 
-// Serve the frontend (Front/) so fixed links like /login.html work
+// Serve the frontend locally (ignored on Vercel)
 app.use(express.static(path.join(__dirname, 'Front')));
 
 // Handle routes that do not exist
@@ -57,21 +73,26 @@ app.use((req, res) => {
 // Handle other errors
 app.use(errorHandler);
 
-// Database Connection and Server
-dbConnection()
-    .then(() => {
-        const server = app.listen(port, () => {
-            console.log(`Server is running on port ${port}`);
-        });
+// Standalone server for local development (Vercel manages its own runtime)
+if (!process.env.VERCEL) {
+    const port = process.env.PORT || 3000;
+    dbConnection()
+        .then(() => {
+            const server = app.listen(port, () => {
+                console.log(`Server is running on port ${port}`);
+            });
 
-        server.on('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                console.error(`Port ${port} is already in use by another process.`);
-            } else {
-                console.error('Server error:', err.message);
-            }
+            server.on('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    console.error(`Port ${port} is already in use by another process.`);
+                } else {
+                    console.error('Server error:', err.message);
+                }
+            });
+        })
+        .catch((err) => {
+            console.error('Database Connection Failed:', err.message);
         });
-    })
-    .catch((err) => {
-        console.error('Database Connection Failed:', err.message);
-    });
+}
+
+export default app;
